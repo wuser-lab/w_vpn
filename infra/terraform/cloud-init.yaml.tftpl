@@ -1,0 +1,33 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - wireguard
+  - unbound
+  - nftables
+  - fail2ban
+  - unattended-upgrades
+
+write_files:
+  - path: /etc/sysctl.d/99-wvpn.conf
+    permissions: "0644"
+    content: |
+      net.ipv4.ip_forward=1
+      net.ipv6.conf.all.forwarding=1
+  - path: /etc/wireguard/wg0.conf
+    permissions: "0600"
+    content: |
+      [Interface]
+      Address = ${wireguard_cidr}
+      ListenPort = 51820
+      PrivateKey = REPLACE_VIA_SECRET_PROVISIONING
+
+runcmd:
+  - [sysctl, --system]
+  - [systemctl, enable, --now, unbound]
+  - [systemctl, enable, --now, fail2ban]
+  - [systemctl, enable, --now, unattended-upgrades]
+  - [sh, -c, "touch /var/lib/wvpn-needs-key && chmod 600 /var/lib/wvpn-needs-key"]
+
+final_message: "${gateway_name} base provisioning complete; WireGuard remains disabled until its private key is installed."
+

@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: wvpn
+      POSTGRES_PASSWORD: wvpn
+      POSTGRES_DB: wvpn
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wvpn"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  api:
+    build: ./services/api
+    environment:
+      DATABASE_URL: postgres://wvpn:wvpn@postgres:5432/wvpn?sslmode=disable
+      DEVELOPMENT_TOKEN: local-development-only
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+
